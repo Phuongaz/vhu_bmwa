@@ -89,7 +89,7 @@ func getTymNow() time.Time {
 }
 
 func genErMsg(msg string) string {
-	erMsg := fmt.Sprintf("Error: %s", msg)
+	erMsg := fmt.Sprintf("error: %s", msg)
 	return erMsg
 }
 

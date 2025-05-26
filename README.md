@@ -1,4 +1,4 @@
-# 🚀 VHU_BMWA: Triển khai và đánh giá RESTful API
+# 🚀 VHU_BMWA: Triển khai và đánh giá bảo mật RESTful API
 
 ## 📚 Giới thiệu
 Chào mừng đến với bài tập siêu to khổng lồ của môn học "Bảo mật Web & Ứng dụng"! 
@@ -74,14 +74,14 @@ docker-compose ps
 ## 🔍 API Endpoints
 
 ### 👤 Authentication
-- `POST /api/auth/register` - Đăng ký (nhớ đặt mật khẩu mạnh, đừng xài "123456" 🤦‍♂️)
-- `POST /api/auth/login` - Đăng nhập (quên mật khẩu thì tự xử 😅)
+- `POST /api/auth/register` - Đăng ký
+- `POST /api/auth/login` - Đăng nhập
 
 ### 🛍 Products
 - `GET /api/products` - Lấy danh sách sản phẩm
-- `POST /api/products` - Thêm sản phẩm
-- `PUT /api/products/:id` - Cập nhật sản phẩm
-- `DELETE /api/products/:id` - Xóa sản phẩm
+- `POST /api/products` - Thêm sản phẩm `required Role admin`
+- `PUT /api/products/:id` - Cập nhật sản phẩm `required Role admin`
+- `DELETE /api/products/:id` - Xóa sản phẩm `required Role admin`
 
 ## 📊 Monitoring
 
@@ -92,7 +92,7 @@ docker-compose ps
 
 ### Rate Limiting
 - 10 request/giây
-- Áp dụng cho tất cả các endpoint (công bằng là trên hết)
+- Áp dụng cho tất cả các endpoint
 
 ## 🔒 Bảo mật
 - JWT Authentication 
@@ -103,13 +103,7 @@ docker-compose ps
 ## 🎯 Mục tiêu đạt được
 - [x] Xây dựng RESTful API hoàn chỉnh
 - [x] Triển khai hệ thống logging chi tiết
-- [x] Bảo mật chắc chắn
-- [x] Code sạch đẹp (gần như zậy, AI Code mà 😅)
 - [ ] Điểm A môn học.....
-
-
-## 📜 License
-MIT License (nghĩa là muốn làm gì thì làm, nhưng đừng blame tôi 😅)
 
 ## 🙏 Special Thanks
 - Cảm ơn Stack Overflow (vì đã giúp copy-paste code)

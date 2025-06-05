@@ -45,6 +45,10 @@
 - `POST /api/auth/login` — User login and token 
 - `POST /api/auth/logout` — User logout (requires authentication)
 - `GET /api/profile` — Get user profile (requires authentication)
+
+- `GET /api/oauth2/authorize` — Google login
+- `GET /api/oauth2/callback` — Google callback
+
 ### Product Management (Admin only)
 
 - `GET /api/products` — Get all products  

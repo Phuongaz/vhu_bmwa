@@ -56,6 +56,12 @@ func main() {
 			auth.POST("/logout", middleware.AuthMiddleware(), handlers.LogoutHandler())
 		}
 
+		oauth2 := api.Group("/oauth2")
+		{
+			oauth2.GET("/authorize", handlers.GoogleLoginHandler())
+			oauth2.GET("/callback", handlers.GoogleCallbackHandler(db))
+		}
+
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware())
 		{

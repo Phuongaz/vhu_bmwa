@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -8,49 +9,64 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	AccessLog   *logrus.Logger
-	SecurityLog *logrus.Logger
-	ErrorLog    *logrus.Logger
+const (
+	LogDir = "logs"
 )
 
+type LogType string
+
+const (
+	AccessLog   LogType = "access"
+	SecurityLog LogType = "security"
+	ErrorLog    LogType = "error"
+)
+
+var loggers map[LogType]*logrus.Logger
+
 func init() {
-	if err := os.MkdirAll("logs", 0755); err != nil {
-		panic("Failed to create logs directory: " + err.Error())
+	loggers = make(map[LogType]*logrus.Logger)
+	setupLoggers()
+}
+
+func setupLoggers() {
+	if err := os.MkdirAll(LogDir, 0755); err != nil {
+		panic(fmt.Sprintf("Failed to create logs directory: %v", err))
 	}
 
-	AccessLog = logrus.New()
-	AccessLog.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat: time.RFC3339,
-	})
-	accessLogPath := filepath.Join("logs", "access.log")
-	accessLogFile, err := os.OpenFile(accessLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		panic("Failed to open access log file: " + err.Error())
-	}
-	AccessLog.SetOutput(accessLogFile)
+	setupLogger(AccessLog)
+	setupLogger(SecurityLog)
+	setupLogger(ErrorLog)
+}
 
-	SecurityLog = logrus.New()
-	SecurityLog.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat: time.RFC3339,
+func setupLogger(logType LogType) {
+	logger := logrus.New()
+	logger.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat: "2006-01-02 15:04:05",
 	})
-	securityLogPath := filepath.Join("logs", "security.log")
-	securityLogFile, err := os.OpenFile(securityLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		panic("Failed to open security log file: " + err.Error())
-	}
-	SecurityLog.SetOutput(securityLogFile)
 
-	ErrorLog = logrus.New()
-	ErrorLog.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat: time.RFC3339,
-	})
-	errorLogPath := filepath.Join("logs", "error.log")
-	errorLogFile, err := os.OpenFile(errorLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		panic("Failed to open error log file: " + err.Error())
+	today := time.Now().Format("2006-01-02")
+	dailyDir := filepath.Join(LogDir, today)
+	if err := os.MkdirAll(dailyDir, 0755); err != nil {
+		panic(fmt.Sprintf("Failed to create daily log directory: %v", err))
 	}
-	ErrorLog.SetOutput(errorLogFile)
+
+	logPath := filepath.Join(dailyDir, fmt.Sprintf("%s.log", logType))
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to open log file: %v", err))
+	}
+
+	logger.SetOutput(file)
+	loggers[logType] = logger
+}
+
+func getLogger(logType LogType) *logrus.Logger {
+	today := time.Now().Format("2006-01-02")
+	currentLogPath := filepath.Join(LogDir, today, fmt.Sprintf("%s.log", logType))
+	if _, err := os.Stat(currentLogPath); os.IsNotExist(err) {
+		setupLogger(logType)
+	}
+	return loggers[logType]
 }
 
 type AccessLogEntry struct {
@@ -73,46 +89,39 @@ type SecurityLogEntry struct {
 	Metadata    map[string]interface{}
 }
 
-type ErrorLogEntry struct {
-	Error      error
-	Component  string
-	UserID     uint
-	RequestID  string
-	StackTrace string
-	Context    map[string]interface{}
-}
-
 func LogAccess(entry AccessLogEntry) {
-	AccessLog.WithFields(logrus.Fields{
+	logger := getLogger(AccessLog)
+	logger.WithFields(logrus.Fields{
 		"method":      entry.Method,
 		"path":        entry.Path,
 		"status_code": entry.StatusCode,
-		"duration_ms": entry.Duration.Milliseconds(),
+		"duration":    entry.Duration.String(),
 		"ip":          entry.IP,
 		"user_agent":  entry.UserAgent,
 		"user_id":     entry.UserID,
 		"request_id":  entry.RequestID,
 		"query":       entry.QueryParams,
-	}).Info("Access log")
+		"timestamp":   time.Now().Format("2006-01-02 15:04:05"),
+	}).Info("Access Log")
 }
 
 func LogSecurity(entry SecurityLogEntry) {
-	SecurityLog.WithFields(logrus.Fields{
+	logger := getLogger(SecurityLog)
+	logger.WithFields(logrus.Fields{
 		"event_type":  entry.EventType,
 		"user_id":     entry.UserID,
 		"ip":          entry.IP,
 		"description": entry.Description,
 		"metadata":    entry.Metadata,
-	}).Info("Security event")
+		"timestamp":   time.Now().Format("2006-01-02 15:04:05"),
+	}).Info("Security Log")
 }
 
-func LogError(entry ErrorLogEntry) {
-	ErrorLog.WithFields(logrus.Fields{
-		"error":      entry.Error.Error(),
-		"component":  entry.Component,
-		"user_id":    entry.UserID,
-		"request_id": entry.RequestID,
-		"stack":      entry.StackTrace,
-		"context":    entry.Context,
-	}).Error("System error")
+func LogError(err error, metadata map[string]interface{}) {
+	logger := getLogger(ErrorLog)
+	logger.WithFields(logrus.Fields{
+		"error":     err.Error(),
+		"metadata":  metadata,
+		"timestamp": time.Now().Format("2006-01-02 15:04:05"),
+	}).Error("Error Log")
 }

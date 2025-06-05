@@ -13,7 +13,7 @@
 - Add structured logging (access, security, and error logs)
 - Apply basic security measures: bcrypt, rate limiting, input validation
 - Deploy the system using Docker and Nginx
-
+- Implement OAuth2.0 authentication with Google
 ---
 
 ## Technology Stack
@@ -24,7 +24,7 @@
 - **Logging**: Logrus
 - **Containerization**: Docker & Docker Compose
 - **Proxy**: Nginx
-
+- **OAuth2.0**: Google
 ---
 
 ## Security Features
@@ -34,7 +34,7 @@
 - Rate limiting (10 requests/second)
 - Input validation
 - Role-based access for admin endpoints
-
+- OAuth2.0 authentication with Google
 ---
 
 ## API Endpoints

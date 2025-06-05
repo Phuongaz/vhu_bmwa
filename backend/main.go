@@ -53,6 +53,7 @@ func main() {
 		{
 			auth.POST("/register", handlers.RegHandler(db))
 			auth.POST("/login", handlers.LoginHandler(db))
+			auth.POST("/logout", middleware.AuthMiddleware(), handlers.LogoutHandler())
 		}
 
 		protected := api.Group("/")

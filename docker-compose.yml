@@ -7,19 +7,9 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      - frontend
       - backend
     networks:
       - app-network
-
-  frontend:
-    build: ./frontend
-    environment:
-      - VITE_API_URL=http://localhost/api
-    networks:
-      - app-network
-    depends_on:
-      - backend
 
   backend:
     build: ./backend

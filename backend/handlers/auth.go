@@ -132,6 +132,18 @@ func ValidateUsr(u string) error {
 	return nil
 }
 
+func setAuthCookie(c *gin.Context, token string) {
+	c.SetCookie(
+		"auth_token",
+		token,
+		24*60*60, //(24 hours in seconds)
+		"/",
+		"",
+		true,
+		true,
+	)
+}
+
 func RegHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req RegReq
@@ -161,10 +173,10 @@ func RegHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		setAuthCookie(c, token)
 		logRegSuccess(c, usr)
 
 		c.JSON(http.StatusOK, gin.H{
-			"token": token,
 			"user": gin.H{
 				"id":       usr.ID,
 				"username": usr.Usr,
@@ -307,10 +319,10 @@ func LoginHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		setAuthCookie(c, token)
 		logLoginSuccess(c, usr)
 
 		c.JSON(http.StatusOK, gin.H{
-			"token": token,
 			"user": gin.H{
 				"id":       usr.ID,
 				"username": usr.Usr,
@@ -321,7 +333,10 @@ func LoginHandler(db *gorm.DB) gin.HandlerFunc {
 }
 
 func parseLoginReq(c *gin.Context, req *LoginReq) error {
-	return c.ShouldBindJSON(req)
+	if err := c.ShouldBindJSON(req); err != nil {
+		return fmt.Errorf("invalid username or password")
+	}
+	return nil
 }
 
 func getUsr(db *gorm.DB, username string) (*User, error) {
@@ -349,7 +364,7 @@ func handleLoginErr(c *gin.Context, eventType string, err error, metadata map[st
 	})
 
 	c.JSON(http.StatusUnauthorized, gin.H{
-		"error": err.Error(),
+		"error": "Invalid username or password",
 	})
 }
 
@@ -432,5 +447,22 @@ func ChgPwdHandler(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
+	}
+}
+
+func LogoutHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.SetCookie(
+			"auth_token",
+			"",
+			-1, // (negative value to expire immediately)
+			"/",
+			"",
+			true,
+			true,
+		)
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Logged out successfully",
+		})
 	}
 }

@@ -1,12 +1,12 @@
 # VHU_BMWA — Secure RESTful API Example
 
-## 📘 Overview
+## Overview
 
 **VHU_BMWA** is a full-stack project that demonstrates how to build a secure RESTful API with authentication, logging, and containerized deployment. This project was developed as part of the Web & Application Security course at VHU.
 
 ---
 
-## 🎯 Objectives
+## Objectives
 
 - Develop a RESTful API using Golang and Gin framework
 - Implement JWT-based authentication and role-based access control
@@ -16,10 +16,9 @@
 
 ---
 
-## 🛠 Technology Stack
+## Technology Stack
 
 - **Backend**: Golang (Gin)
-- **Frontend**: Vue.js
 - **Database**: MySQL
 - **Authentication**: JWT
 - **Logging**: Logrus
@@ -28,7 +27,7 @@
 
 ---
 
-## 🔐 Security Features
+## Security Features
 
 - JWT token authentication
 - Password hashing with bcrypt
@@ -38,13 +37,14 @@
 
 ---
 
-## 📌 API Endpoints
+## API Endpoints
 
 ### Authentication
 
 - `POST /api/auth/register` — Register new user  
-- `POST /api/auth/login` — User login and token retrieval
-
+- `POST /api/auth/login` — User login and token 
+- `POST /api/auth/logout` — User logout (requires authentication)
+- `GET /api/profile` — Get user profile (requires authentication)
 ### Product Management (Admin only)
 
 - `GET /api/products` — Get all products  
@@ -54,7 +54,7 @@
 
 ---
 
-## 📝 Logging System
+## Logging System
 
 - `access.log` — Logs all HTTP requests  
 - `security.log` — Logs login attempts, rate limiting, and suspicious input  
@@ -62,7 +62,7 @@
 
 ---
 
-## ⚙️ Deployment
+## Deployment
 
 ### Requirements
 

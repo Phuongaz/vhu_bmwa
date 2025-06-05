@@ -62,6 +62,9 @@
 
 ---
 
+## Postman Collection
+
+[REST API SECURE.postman_collection.json](REST%20API%20SECURE.postman_collection.json)
 ## Deployment
 
 ### Requirements

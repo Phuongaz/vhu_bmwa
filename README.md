@@ -39,23 +39,50 @@
 
 ## API Endpoints
 
-### Authentication
+### V1
+This version is included more vulnerabilities.
+- No JWT token authentication (Just store username/password in localStorage)
+- Authorize with header X-Role (take it from localStorage)
+- No rate limiting
+- No input validation
+- Raw SQL query
 
-- `POST /api/auth/register` — Register new user  
-- `POST /api/auth/login` — User login and token 
-- `POST /api/auth/logout` — User logout (requires authentication)
-- `GET /api/profile` — Get user profile (requires authentication)
+##### Authentication
 
-- `GET /api/oauth2/authorize` — Google login
-- `GET /api/oauth2/callback` — Google callback
+- `POST /api/v1/auth/register` — Register new user  
+- `POST /api/v1/auth/login` — User login
+- `POST /api/v1/auth/logout` — User logout (requires authentication)
+- `GET /api/v1/profile` — Get user profile (requires authentication)
 
 ### Product Management (Admin only)
+- `GET /api/v1/products` — Get all products  
+- `POST /api/v1/products` — Create a new product  
+- `PUT /api/v1/products/:id` — Update a product  
+- `DELETE /api/v1/products/:id` — Delete a product  
 
-- `GET /api/products` — Get all products  
-- `POST /api/products` — Create a new product  
-- `PUT /api/products/:id` — Update a product  
-- `DELETE /api/products/:id` — Delete a product  
+### V2
+This version is included more security features.
+- JWT token authentication
+- Rate limiting (10 requests/second)
+- Input validation
+- Role-based access for admin endpoints
+- OAuth2.0 authentication with Google
+- Prepared statement
+- Use ORM (Gorm)
+- Store JWT token in cookies
 
+##### Authentication
+
+- `POST /api/v2/auth/register` — Register new user  
+- `POST /api/v2/auth/login` — User login
+- `POST /api/v2/auth/logout` — User logout (requires authentication)
+- `GET /api/v2/profile` — Get user profile (requires authentication)
+
+### Product Management (Admin only)
+- `GET /api/v2/products` — Get all products  
+- `POST /api/v2/products` — Create a new product  
+- `PUT /api/v2/products/:id` — Update a product  
+- `DELETE /api/v2/products/:id` — Delete a product  
 ---
 
 ## Logging System
@@ -65,10 +92,6 @@
 - `error.log` — Logs backend errors with stack traces  
 
 ---
-
-## Postman Collection
-
-[REST API SECURE.postman_collection.json](REST%20API%20SECURE.postman_collection.json)
 ## Deployment
 
 ### Requirements

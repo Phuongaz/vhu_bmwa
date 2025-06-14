@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"vhu_bmwa/handlers"
+	"vhu_bmwa/handlers/insecure"
 	"vhu_bmwa/middleware"
+	"vhu_bmwa/models"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
@@ -30,39 +31,65 @@ func main() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	db.AutoMigrate(&handlers.User{}, &handlers.Product{})
+	// Auto-migrate both secure and insecure models
+	db.AutoMigrate(
+		&models.User{},
+		&models.Product{},
+		&models.InsecureUser{},
+		&models.InsecureProduct{},
+	)
 
 	r := gin.Default()
-
-	config := cors.Config{
-		AllowOrigins:     []string{"http://localhost", "https://localhost"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}
-	r.Use(cors.New(config))
-
 	r.Use(middleware.LoggerMiddleware())
-	r.Use(middleware.RateLimitMiddleware(10, time.Second))
 
-	api := r.Group("/api")
+	// V1 API - Insecure Implementation
+	v1 := r.Group("/api/v1")
 	{
-		auth := api.Group("/auth")
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/register", insecure.RegisterHandler(db))
+			auth.POST("/login", insecure.LoginHandler(db))
+			auth.POST("/logout", insecure.LogoutHandler())
+			auth.POST("/change-password", insecure.InsecureChangePasswordHandler(db))
+		}
+
+		users := v1.Group("/users")
+		{
+			users.GET("/:username", insecure.ProfileHandler(db))
+		}
+		//profile
+		profile := v1.Group("/profile")
+		{
+			profile.GET("", insecure.ProfileHandler(db))
+		}
+
+		products := v1.Group("/products")
+		{
+			products.GET("", insecure.InsecureListProductsHandler(db))
+			products.POST("", middleware.InsecureAuthMiddleware(), insecure.InsecureCreateProductHandler(db))
+			products.PUT("/:id", middleware.InsecureAuthMiddleware(), insecure.InsecureUpdateProductHandler(db))
+			products.DELETE("/:id", middleware.InsecureAuthMiddleware(), insecure.InsecureDeleteProductHandler(db))
+		}
+	}
+
+	// V2 API - Secure Implementation
+	v2 := r.Group("/api/v2")
+	v2.Use(middleware.RateLimitMiddleware(10, time.Second))
+	{
+		auth := v2.Group("/auth")
 		{
 			auth.POST("/register", handlers.RegHandler(db))
 			auth.POST("/login", handlers.LoginHandler(db))
 			auth.POST("/logout", middleware.AuthMiddleware(), handlers.LogoutHandler())
 		}
 
-		oauth2 := api.Group("/oauth2")
+		oauth2 := v2.Group("/oauth2")
 		{
 			oauth2.GET("/authorize", handlers.GoogleLoginHandler())
 			oauth2.GET("/callback", handlers.GoogleCallbackHandler(db))
 		}
 
-		protected := api.Group("/")
+		protected := v2.Group("/")
 		protected.Use(middleware.AuthMiddleware())
 		{
 			protected.GET("/profile", handlers.ProfHandler(db))

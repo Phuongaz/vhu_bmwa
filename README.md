@@ -17,7 +17,7 @@
 ---
 
 ## Technology Stack
-
+- **Frontend**: Vue.js 3, Vite, Tailwind CSS, Pinia
 - **Backend**: Golang (Gin)
 - **Database**: MySQL
 - **Authentication**: JWT

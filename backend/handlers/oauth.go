@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"vhu_bmwa/logging"
 	"vhu_bmwa/oauth"
 
@@ -33,9 +34,14 @@ func GoogleLoginHandler() gin.HandlerFunc {
 
 func GoogleCallbackHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:5173"
+		}
+
 		state, _ := c.Cookie("oauth_state")
 		if state != c.Query("state") {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid OAuth state"})
+			c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/login?error=invalid_state")
 			return
 		}
 		c.SetCookie("oauth_state", "", -1, "/", "", true, true)
@@ -46,7 +52,7 @@ func GoogleCallbackHandler(db *gorm.DB) gin.HandlerFunc {
 			logging.LogError(err, map[string]interface{}{
 				"event": "google_oauth_exchange_failed",
 			})
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to exchange token"})
+			c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/login?error=token_exchange_failed")
 			return
 		}
 
@@ -56,7 +62,7 @@ func GoogleCallbackHandler(db *gorm.DB) gin.HandlerFunc {
 			logging.LogError(err, map[string]interface{}{
 				"event": "google_userinfo_failed",
 			})
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get user info"})
+			c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/login?error=userinfo_failed")
 			return
 		}
 		defer resp.Body.Close()
@@ -66,7 +72,7 @@ func GoogleCallbackHandler(db *gorm.DB) gin.HandlerFunc {
 			logging.LogError(err, map[string]interface{}{
 				"event": "google_userinfo_read_failed",
 			})
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read user info"})
+			c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/login?error=userinfo_read_failed")
 			return
 		}
 
@@ -75,7 +81,7 @@ func GoogleCallbackHandler(db *gorm.DB) gin.HandlerFunc {
 			logging.LogError(err, map[string]interface{}{
 				"event": "google_userinfo_parse_failed",
 			})
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user info"})
+			c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/login?error=userinfo_parse_failed")
 			return
 		}
 
@@ -88,14 +94,14 @@ func GoogleCallbackHandler(db *gorm.DB) gin.HandlerFunc {
 					"event": "password_hash_failed",
 					"email": googleUser.Email,
 				})
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+				c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/login?error=user_creation_failed")
 				return
 			}
 
 			user = User{
-				Usr:  googleUser.Email,
-				Pwd:  string(hashedPwd),
-				Role: RoleUsr,
+				Username: googleUser.Email,
+				Password: string(hashedPwd),
+				Role:     RoleUsr,
 			}
 
 			if err := db.Create(&user).Error; err != nil {
@@ -103,7 +109,7 @@ func GoogleCallbackHandler(db *gorm.DB) gin.HandlerFunc {
 					"event": "user_creation_failed",
 					"email": googleUser.Email,
 				})
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+				c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/login?error=user_creation_failed")
 				return
 			}
 		} else if result.Error != nil {
@@ -111,12 +117,13 @@ func GoogleCallbackHandler(db *gorm.DB) gin.HandlerFunc {
 				"event": "user_lookup_failed",
 				"email": googleUser.Email,
 			})
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process user"})
+			c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/login?error=user_lookup_failed")
 			return
 		}
 
 		jwtToken, err := genUsrToken(c, &user)
 		if err != nil {
+			c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/login?error=token_generation_failed")
 			return
 		}
 
@@ -132,12 +139,7 @@ func GoogleCallbackHandler(db *gorm.DB) gin.HandlerFunc {
 			},
 		})
 
-		c.JSON(http.StatusOK, gin.H{
-			"user": gin.H{
-				"id":       user.ID,
-				"username": user.Usr,
-				"role":     user.Role,
-			},
-		})
+		// Redirect to frontend home page after successful login
+		c.Redirect(http.StatusTemporaryRedirect, frontendURL)
 	}
 }

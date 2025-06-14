@@ -1,0 +1,46 @@
+// package models
+
+// import (
+// 	"gorm.io/gorm"
+// )
+
+// // User represents the secure user model with proper validation and field protection
+// type User struct {
+// 	gorm.Model
+// 	Username string `gorm:"unique;not null" json:"username"`
+// 	Password string `json:"-"` // Password is never exposed in JSON responses
+// 	Role     string `gorm:"default:user" json:"role"`
+// }
+
+// // InsecureUser demonstrates common security anti-patterns:
+// // 1. Password exposed in JSON responses
+// // 2. No input validation
+// // 3. No role validation
+// // 4. Plain text passwords
+// type InsecureUser struct {
+// 	gorm.Model
+// 	Username string `json:"username"`           // No uniqueness constraint
+// 	Password string `json:"password"`           // Password exposed in JSON
+// 	Role     string `json:"role"`               // No default role
+// 	Token    string `json:"token,omitempty"`    // Token exposed in response
+// 	IsAdmin  bool   `json:"is_admin,omitempty"` // Direct admin flag exposure
+// }
+
+// // LoginRequest represents the login credentials
+// type LoginRequest struct {
+// 	Username string `json:"username" binding:"required"`
+// 	Password string `json:"password" binding:"required"`
+// }
+
+// // RegisterRequest represents the registration data
+// type RegisterRequest struct {
+// 	Username string `json:"username" binding:"required"`
+// 	Password string `json:"password" binding:"required"`
+// 	Role     string `json:"role"` // Allowing role specification is a security risk
+// }
+
+// // ChangePasswordRequest represents password change data
+// type ChangePasswordRequest struct {
+// 	CurrentPassword string `json:"current_password" binding:"required"`
+// 	NewPassword     string `json:"new_password" binding:"required"`
+// }

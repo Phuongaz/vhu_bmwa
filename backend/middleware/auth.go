@@ -91,3 +91,18 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+///INSECURE AUTH MIDDLEWARE
+
+func InsecureAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		username := c.GetHeader("X-User")
+		if username == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.Abort()
+			return
+		}
+		c.Set("username", username)
+		c.Next()
+	}
+}

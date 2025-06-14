@@ -30,24 +30,24 @@ const (
 
 type User struct {
 	gorm.Model
-	Usr  string `json:"username" gorm:"unique;not null"`
-	Pwd  string `json:"-" gorm:"not null"`
-	Role string `json:"role" gorm:"default:user"`
+	Username string `json:"username" gorm:"unique;not null"`
+	Password string `json:"-" gorm:"not null"`
+	Role     string `json:"role" gorm:"default:user"`
 }
 
 type LoginReq struct {
-	Usr string `json:"username" binding:"required"`
-	Pwd string `json:"password" binding:"required"`
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 type RegReq struct {
-	Usr string `json:"username" binding:"required"`
-	Pwd string `json:"password" binding:"required"`
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 type ChgPwdReq struct {
-	CurPwd string `json:"currentPassword" binding:"required"`
-	NewPwd string `json:"newPassword" binding:"required"`
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required"`
 }
 
 func chekPwdLen(p string) bool {
@@ -133,6 +133,20 @@ func ValidateUsr(u string) error {
 }
 
 func setAuthCookie(c *gin.Context, token string) {
+	//check if # domain Secure is true
+	if c.Request.TLS == nil {
+		c.SetCookie(
+			"auth_token",
+			token,
+			24*60*60, //(24 hours in seconds)
+			"/",
+			"",
+			false,
+			true,
+		)
+		return
+	}
+
 	c.SetCookie(
 		"auth_token",
 		token,
@@ -152,18 +166,18 @@ func RegHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if err := validateRegUsr(c, db, req.Usr); err != nil {
+		if err := validateRegUsr(c, db, req.Username); err != nil {
 			return
 		}
 
-		if err := validateRegPwd(c, req.Pwd); err != nil {
+		if err := validateRegPwd(c, req.Password); err != nil {
 			return
 		}
 
-		usr, err := createUsr(db, req.Usr, req.Pwd)
+		usr, err := createUsr(db, req.Username, req.Password)
 		if err != nil {
 			handleRegErr(c, "CREATE_FAILED", err, map[string]interface{}{
-				"username": req.Usr,
+				"username": req.Username,
 			})
 			return
 		}
@@ -179,7 +193,7 @@ func RegHandler(db *gorm.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{
 			"user": gin.H{
 				"id":       usr.ID,
-				"username": usr.Usr,
+				"username": usr.Username,
 				"role":     usr.Role,
 			},
 		})
@@ -227,9 +241,9 @@ func createUsr(db *gorm.DB, username, password string) (*User, error) {
 	}
 
 	usr := &User{
-		Usr:  username,
-		Pwd:  string(hashedPwd),
-		Role: RoleUsr,
+		Username: username,
+		Password: string(hashedPwd),
+		Role:     RoleUsr,
 	}
 
 	if err := db.Create(usr).Error; err != nil {
@@ -285,7 +299,7 @@ func logRegSuccess(c *gin.Context, usr *User) {
 		IP:          c.ClientIP(),
 		Description: "User registered successfully",
 		Metadata: map[string]interface{}{
-			"username": usr.Usr,
+			"username": usr.Username,
 			"role":     usr.Role,
 		},
 	})
@@ -299,17 +313,17 @@ func LoginHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		usr, err := getUsr(db, req.Usr)
+		usr, err := getUsr(db, req.Username)
 		if err != nil {
 			handleLoginErr(c, "USER_NOT_FOUND", err, map[string]interface{}{
-				"username": req.Usr,
+				"username": req.Username,
 			})
 			return
 		}
 
-		if err := chekUsrPwd(usr, req.Pwd); err != nil {
+		if err := chekUsrPwd(usr, req.Password); err != nil {
 			handleLoginErr(c, "PASSWORD_INVALID", err, map[string]interface{}{
-				"username": req.Usr,
+				"username": req.Username,
 			})
 			return
 		}
@@ -325,7 +339,7 @@ func LoginHandler(db *gorm.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{
 			"user": gin.H{
 				"id":       usr.ID,
-				"username": usr.Usr,
+				"username": usr.Username,
 				"role":     usr.Role,
 			},
 		})
@@ -341,14 +355,14 @@ func parseLoginReq(c *gin.Context, req *LoginReq) error {
 
 func getUsr(db *gorm.DB, username string) (*User, error) {
 	var usr User
-	if err := db.Where("usr = ?", username).First(&usr).Error; err != nil {
+	if err := db.Where("username = ?", username).First(&usr).Error; err != nil {
 		return nil, fmt.Errorf("invalid username or password")
 	}
 	return &usr, nil
 }
 
 func chekUsrPwd(usr *User, password string) error {
-	err := bcrypt.CompareHashAndPassword([]byte(usr.Pwd), []byte(password))
+	err := bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(password))
 	if err != nil {
 		return fmt.Errorf("invalid username or password")
 	}
@@ -375,7 +389,7 @@ func logLoginSuccess(c *gin.Context, usr *User) {
 		IP:          c.ClientIP(),
 		Description: "User logged in successfully",
 		Metadata: map[string]interface{}{
-			"username": usr.Usr,
+			"username": usr.Username,
 			"role":     usr.Role,
 		},
 	})
@@ -397,7 +411,7 @@ func ProfHandler(db *gorm.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{
 			"user": gin.H{
 				"id":       u.ID,
-				"username": u.Usr,
+				"username": u.Username,
 				"role":     u.Role,
 			},
 		})
@@ -424,23 +438,23 @@ func ChgPwdHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(u.Pwd), []byte(r.CurPwd)); err != nil {
+		if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(r.CurrentPassword)); err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Current password is incorrect"})
 			return
 		}
 
-		if err := ValidatePwd(r.NewPwd); err != nil {
+		if err := ValidatePwd(r.NewPassword); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		hp, err := bcrypt.GenerateFromPassword([]byte(r.NewPwd), bcrypt.DefaultCost)
+		hp, err := bcrypt.GenerateFromPassword([]byte(r.NewPassword), bcrypt.DefaultCost)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 			return
 		}
 
-		u.Pwd = string(hp)
+		u.Password = string(hp)
 		if err := db.Save(&u).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
 			return
@@ -458,7 +472,7 @@ func LogoutHandler() gin.HandlerFunc {
 			-1, // (negative value to expire immediately)
 			"/",
 			"",
-			true,
+			false,
 			true,
 		)
 		c.JSON(http.StatusOK, gin.H{

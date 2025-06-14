@@ -31,8 +31,8 @@ services:
       - DB_NAME=vhu_bmwa
       - JWT_SECRET=your_jwt_secret_key 
       - BACKEND_PORT=8080
-      - GOOGLE_CLIENT_ID=xxx
-      - GOOGLE_CLIENT_SECRET=xx
+      - GOOGLE_CLIENT_ID=xx
+      - GOOGLE_CLIENT_SECRET=xxx
       - GOOGLE_REDIRECT_URL=http://localhost/api/oauth2/callback
     networks:
       - app-network
